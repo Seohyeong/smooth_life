@@ -3,10 +3,12 @@
 
 #include <raylib.h>
 
-#define CELL_SIZE 1
-#define ROW 800 // TODO: can this be inside State struct?
-#define COL 800
+#define BOARD_SIZE 1000
+#define CELL_SIZE 4
+#define ROW BOARD_SIZE / CELL_SIZE
+#define COL BOARD_SIZE / CELL_SIZE
 
+#define SHBLACK {31,31,31,255}
 
 struct State{
 	int current_cells[ROW][COL];
@@ -56,16 +58,21 @@ void get_next(State& state){
 			cnt_alive -= state.current_cells[i][j];
 
 			// applying rules
-			// Any live cell with fewer than two live neighbors dies as if caused by underpopulation.
-			// Any live cell with two or three live neighbors lives on to the next generation.
-			// Any live cell with more than three live neighbors dies, as if by overpopulation.
-			// Any dead cell with exactly three live neighbors becomes a live cell, as if by reproduction.
-			if(cnt_alive<2){
+			// Any live cell with fewer than two live neighbors // dies as if caused by underpopulation.
+			// Any live cell with two or three live neighbors // lives on to the next generation.
+			// Any live cell with more than three live neighbors // dies, as if by overpopulation.
+			// Any dead cell with exactly three live neighbors // becomes a live cell, as if by reproduction.
+			if(cnt_alive<2 && state.current_cells[i][j]==1){
 				state.next_cells[i][j] = 0;
-			} else if(cnt_alive == 2 || cnt_alive == 3){
+			}
+			if((cnt_alive==2 && state.current_cells[i][j]==1) || (cnt_alive==3 && state.current_cells[i][j]==1)){
 				state.next_cells[i][j] = 1;
-			} else {
+			}
+			if (cnt_alive>3 && state.current_cells[i][j]==1){
 				state.next_cells[i][j] = 0;
+			}
+			if (cnt_alive==3 && state.current_cells[i][j]==0){
+				state.next_cells[i][j] = 1;
 			}
 		}
 	}
@@ -87,7 +94,7 @@ void render_state(const State& state){
 	for(i=0; i<ROW; i++){
 		for(j=0; j<COL; j++){
 			if(state.current_cells[i][j]==1){
-				DrawRectangle(i, j, CELL_SIZE, CELL_SIZE, RAYWHITE);
+				DrawRectangle(i*CELL_SIZE, j*CELL_SIZE, CELL_SIZE, CELL_SIZE, RAYWHITE);
 			}
 		}
 	}
@@ -95,12 +102,12 @@ void render_state(const State& state){
 
 
 int main(){
-	srand(time(NULL));
+	srand(time(0));
 
 	State state{};
 
-	InitWindow(800, 800, "Game of Life");
-	SetTargetFPS(60);
+	InitWindow(BOARD_SIZE, BOARD_SIZE, "Game of Life");
+	SetTargetFPS(10);
 
 	init_cells(state);
 
@@ -109,7 +116,7 @@ int main(){
 		BeginDrawing();
 
 		{
-			ClearBackground(BLACK);
+			ClearBackground(SHBLACK);
 			render_state(state);
 		}
 
