@@ -4,7 +4,7 @@
 #include <raylib.h>
 
 #define BOARD_SIZE 1000
-#define CELL_SIZE 4
+#define CELL_SIZE 1
 #define ROW BOARD_SIZE / CELL_SIZE
 #define COL BOARD_SIZE / CELL_SIZE
 
@@ -37,7 +37,12 @@ void init_cells(State& state){
 	int i, j;
 	for(i=0; i<ROW; i++){
 		for(j=0; j<COL; j++){
-			state.current_cells[i][j] = rand() % 2;
+			// random init
+			// state.current_cells[i][j] = rand() % 2;
+			
+			// X diagoal init
+			if(i==j){state.current_cells[i][j] = 1;}
+			if(i+j==ROW-1){state.current_cells[i][j] = 1;}
 		}
 	}
 }
@@ -50,8 +55,8 @@ void get_next(State& state){
 			// loops for counting alive neighboring cells
 			int cnt_alive=0;
 			int ii, jj;
-			for(ii=max(i-1, 0); ii<=min(i+1, ROW); ii++){
-				for(jj=max(j-1, 0); jj<=min(j+1, COL); jj++){
+			for(ii=max(i-1, 0); ii<=min(i+1, ROW-1); ii++){
+				for(jj=max(j-1, 0); jj<=min(j+1, COL-1); jj++){
 					cnt_alive += state.current_cells[ii][jj];
 				}
 			}
@@ -107,7 +112,7 @@ int main(){
 	State state{};
 
 	InitWindow(BOARD_SIZE, BOARD_SIZE, "Game of Life");
-	SetTargetFPS(10);
+	SetTargetFPS(60);
 
 	init_cells(state);
 
