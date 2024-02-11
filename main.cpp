@@ -1,36 +1,57 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <time.h> 
 #include <math.h>
-
+#include <assert.h>
 #include <raylib.h>
 
 
-#define BOARD_SIZE 1000
+#define BOARD_SIZE 400
 #define CELL_SIZE 1
 
 #define ROW BOARD_SIZE / CELL_SIZE
 #define COL BOARD_SIZE / CELL_SIZE
 
+// #define ROW 20
+// #define COL 20
+
 #define SHBLACK {31,31,31,255}
 
 // smoothlife parameters
-int r_a = 21;
-int r_i = r_a / 3;
+int r_a = 12;
+int r_i = 3;
 float b_1 = 0.278;
 float b_2 = 0.365;
 float d_1 = 0.267;
 float d_2 = 0.445;
 float alpha_n = 0.028;
 float alpha_m = 0.147;
+float d_t = 0.05f;
 
 
+// less dense to more dense
+char level[] = " .-=coa@#";
+#define LEVEL_COUNT (sizeof(level)/sizeof(level[0])-1)
+
+
+// NOTE: 0.0 is double (8bytes, double the float) and 0.9f is float (4bytes)
 struct State{
-	float current_cells[ROW][COL];
-	float next_cells[ROW][COL];
+	float current_cells[ROW][COL] = {};
+	float next_cells[ROW][COL] = {};
 };
 
 
+void init_cells(State& state){
+	for(int i=0; i<ROW; i++){
+		for(int j=0; j<COL; j++){
+			state.current_cells[i][j] = (float)rand()/(float)RAND_MAX;
+		}
+	}
+}
+
+///////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////// get integral
 int min(int a, int b){
 	if(a<=b){
 		return a;
@@ -48,127 +69,169 @@ int max(int a, int b){
 }
 
 
-void init_cells(State& state){
-	int i, j;
-	for(i=0; i<ROW; i++){
-		for(j=0; j<COL; j++){
-			state.current_cells[i][j] = (float)rand() / (float)RAND_MAX;
-		}
+int mod(int x, int y){
+	// returns x % y
+	int output = x % y;
+	if(x<0){
+		return output + y;
+	} else {
+		return output;
 	}
 }
 
 
-float integral_of(State& state, int i, int j, int radius){
-	int sum = 0;
-	int ii, jj;
-	for(ii=max(i-radius, 0); ii<=min(i+radius, ROW-1); ii++){
-		for(jj=max(j-radius, 0); jj<=min(j+radius, COL-1); jj++){
-			if((i-ii)^2+(j-jj)^2 <= r_i^2){
-				sum += state.current_cells[i][j];
+void integral_of(State& state, int i, int j, float array[2]){
+	int M = 0;
+	int N = 0;
+	float m = 0;
+	float n = 0;
+
+	for(int ii=i-r_a; ii<=i+r_a; ii++){
+		for(int jj=j-r_a; jj<=j+r_a; jj++){
+			int d_i_pow = (i-ii)*(i-ii);
+			int d_j_pow = (j-jj)*(j-jj);
+			if(d_i_pow + d_j_pow < r_i*r_i){
+				m += state.current_cells[mod(ii, ROW)][mod(jj, COL)];
+				M += 1;
+			} else if(d_i_pow + d_j_pow < r_a*r_a){
+				n += state.current_cells[mod(ii, ROW)][mod(jj, COL)];
+				N += 1;
 			}
 		}
 	}
-	return sum;
+	array[0] = m/M;
+	array[1] = n/N;
 }
 
-
+///////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////// get sigma functions
 float sigma_1(float x, float a, float alpha){
-	return 1.0/(1.0+(float)exp(-(x-a)*4/alpha));
+	return 1.0f / (1.0f + expf(-(x-a)*4/alpha));
 }
 
 
 float sigma_2(float x, float a, float b, float alpha){
-	return sigma_1(x, a, alpha)*(1.0-sigma_1(x, b, alpha));
+	return sigma_1(x, a, alpha)*(1 - sigma_1(x, b, alpha));
 }
 
 
 float sigma_m(float x, float y, float m, float alpha){
-	float sigma_1_o;
-	sigma_1_o = sigma_1(m, 0.5, alpha);
-	return x*(1.0-sigma_1_o)+y*sigma_1_o;
+	float sigma_1_o = sigma_1(m, 0.5f, alpha);
+	return x*(1 - sigma_1_o) + y*sigma_1_o;
 }
 
 
-float s(float n, float m, float b1, float b2, float d1, float d2, float alpha){
+float s(float n, float m){
 	// σ2(n, σm(b1, d1, m), σm(b2, d2, m))
-	float sigma_m_o_1, sigma_m_o_2;
-	sigma_m_o_1 = sigma_2(b1, d1, m, alpha);
-	sigma_m_o_2 = sigma_2(b2, d2, m, alpha);
-	return sigma_2(n, sigma_m_o_1, sigma_m_o_2, alpha);
+	float sigma_m_o1 = sigma_m(b_1, d_1, m, alpha_m);
+	float sigma_m_o2 = sigma_m(b_2, d_2, m, alpha_m);
+	return sigma_2(n, sigma_m_o1, sigma_m_o2, alpha_n);
 }
 
 
 void get_next(State& state){
-	int i, j;
-	for(i=0; i<ROW; i++){
-		for(j=0; j<COL; j++){
+	for(int i=0; i<ROW; i++){
+		for(int j=0; j<COL; j++){
 			// calculate m and n
-			float m, n;
-			m = integral_of(state, i, j, r_i);
-			n = integral_of(state, i, j, r_a) - m;
+			float m_and_n[2];
+			integral_of(state, i, j, m_and_n);
+			float m = m_and_n[0];
+			float n = m_and_n[1];
 
 			// calculate S(n, m)
-			// TODO: what is alpha? we have alpha_n and alpha_m
-			state.next_cells[i][j] = s(n, m, b_1, b_2, d_1, d_2, alpha_m);
+			float cell_diff = 2*s(n, m) - 1;
+			// TODO: this has to be inbetween 0 and 1
+			state.next_cells[i][j] = state.current_cells[i][j] + d_t * cell_diff;
+			if(state.next_cells[i][j] < 0){state.next_cells[i][j] = 0.0f;}
+
+			// // discrete time stepping
+			// state.next_cells[i][j] = s(n, m);
 		}
 	}
 
 	// reset the current state
-	// TODO: array is a pointer. Does this actually copy the value?
-	// state.current_cells = state.next_cells;
-	for(i=0; i<ROW; i++){
-		for(j=0; j<COL; j++){
+	for(int i=0; i<ROW; i++){
+		for(int j=0; j<COL; j++){
 			state.current_cells[i][j] = state.next_cells[i][j];
 		}
 	}
 }
 
 
-// if using state.current_cells as the argument, what is the type of it?
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////// render states
 void render_state(const State& state){
 	int i, j;
 	for(i=0; i<ROW; i++){
 		for(j=0; j<COL; j++){
 				Color color_palate;
-				// state.current_cells[i][j]
-				if(state.current_cells[i][j]==1.0){
-					color_palate = {255, 255, 255, 255};
-				} else if(state.current_cells[i][j]==0.0){
-					color_palate = {0, 0, 1, 255};
-				} else {
-					uint8_t hue = (uint8_t)255 - (uint8_t)(state.current_cells[i][j]*255.0);
-					color_palate = {hue, hue, hue, 255};
-				}
+				uint8_t hue = (uint8_t)(state.current_cells[i][j]*255.0);
+				color_palate = {hue, hue, hue, 255};
 				DrawRectangle(i*CELL_SIZE, j*CELL_SIZE, CELL_SIZE, CELL_SIZE, color_palate);
 		}
 	}
 }
 
 
+void print_state(float array[ROW][COL]){
+	for(int i=0; i<ROW; i++){
+		for(int j=0; j<COL; j++){
+			printf("%f ", array[i][j]);
+		}
+		printf("\n");
+	}
+	printf("\n\n");
+}
+
+
+void print_state_w_char(float array[ROW][COL]){
+	for(int i=0; i<ROW; i++){
+		for(int j=0; j<COL; j++){
+			char c = level[(int)(array[i][j] * (LEVEL_COUNT-1))];
+			printf("%c", c);
+		}
+		printf("\n");
+	}
+}
+
+
+///////////////////////////////////////////////////////////////////////////////
+///////////////////////////////////////////////////////////////// main function
 int main(){
 	srand(time(0));
 
 	State state{};
 
-	InitWindow(BOARD_SIZE, BOARD_SIZE, "Game of Life");
-	SetTargetFPS(10);
+	// raylib loop
+	InitWindow(BOARD_SIZE, BOARD_SIZE, "SmoothLife");
+	SetTargetFPS(60);
 
 	init_cells(state);
 
-	while (!WindowShouldClose()) {		
-		// draw current state
-		BeginDrawing();
+	while (!WindowShouldClose()) {	
 
+		BeginDrawing();
 		{
 			ClearBackground(BLACK);
 			render_state(state);
 		}
-
 		EndDrawing();
 
-		// update state
 		get_next(state);
 	}
 	CloseWindow();
+
+
+	// // just print
+	// init_cells(state);
+	// print_state_w_char(state.current_cells);
+
+	// int count = 0;
+	// while(count < 1000){
+	// 	get_next(state);
+	// 	print_state_w_char(state.current_cells);
+	// 	count += 1;
+	// }
+
 	return 0;
 }

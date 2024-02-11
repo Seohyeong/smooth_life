@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<VariablesViewState
+   version = "1.0">
+   <ContextStates>
+      <ContextState
+         contextName = "integral_of(State&amp;, int, int, float*):main.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "i+r_a">
+            </PersistentString>
+            <PersistentString
+               value = "mod(i-r_a, ROW)">
+            </PersistentString>
+            <PersistentString
+               value = "-103 % 100">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+      <ContextState
+         contextName = "integral_of(State&amp;, int, int, int):main.cpp">
+         <PersistentStrings>
+            <PersistentString
+               value = "state.current_cells[ii][jj]">
+            </PersistentString>
+            <PersistentString
+               value = "sum/N">
+            </PersistentString>
+         </PersistentStrings>
+      </ContextState>
+   </ContextStates>
+</VariablesViewState>
