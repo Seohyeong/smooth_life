@@ -7,7 +7,9 @@ This project is a C-based implementation of two fascinating cellular automata:
 
 It was built as a hands-on exercise to learn the C programming language and explore algorithmic simulation.
 
-🎥 Demo Video: [SmoothLife Demo](assets/smoothlife_demo.mov)
+## 🎥 SmoothLife Glider Demo
+
+![SmoothLife Demo](assets/smoothlife_demo.gif)
 
 
 
