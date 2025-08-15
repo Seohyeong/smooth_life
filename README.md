@@ -9,7 +9,7 @@ It was built as a hands-on exercise to learn the C programming language and expl
 
 🎥 Demo Video: [SmoothLife Demo](assets/smoothlife_demo.mov)
 
----
+
 
 ## 🧠 What Is SmoothLife?
 
@@ -20,10 +20,12 @@ SmoothLife extends Conway’s discrete rules to a continuous domain:
 
 For more background, check out [SmoothLife on SourceForge](https://sourceforge.net/projects/smoothlife/).
 
----
+
 
 ## File Structure
 
+```
 smooth_life/
 ├── game_of_life.c       # Classic Game of Life implementation
 └── main.c               # SmoothLife simulation
+```
