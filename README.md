@@ -9,7 +9,7 @@ It was built as a hands-on exercise to learn the C programming language and expl
 
 ## 🎥 SmoothLife Glider Demo
 
-![SmoothLife Demo](assets/smoothlife_demo.gif)
+![SmoothLife Demo](smoothlife_demo.gif)
 
 
 
